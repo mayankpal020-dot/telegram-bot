@@ -8,7 +8,7 @@ from flask import Flask
 from threading import Thread
 
 load_dotenv()
-web_app = Flask(_name_)
+web_app = Flask(__name__)
 
 @web_app.route("/")
 def home():
