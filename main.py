@@ -4,8 +4,21 @@ from dotenv import load_dotenv
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 from telegram.request import HTTPXRequest
+from flask import Flask
+from threading import Thread
 
 load_dotenv()
+web_app = Flask(_name_)
+
+@web_app.route("/")
+def home():
+    return "Bot is running"
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    web_app.run(host="0.0.0.0", port=port)
+
+Thread(target=run_web, daemon=True).start()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
