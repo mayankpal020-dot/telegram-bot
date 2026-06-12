@@ -376,12 +376,11 @@ async def list_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     msg, keyboard = await make_list_message(1)
     sent_msg=await update.message.reply_text(msg, reply_markup=keyboard)
-
-asyncio.create_task(
+    asyncio.create_task(
     delete_after_20min(
         context,
         update.effective_chat.id,
-        msg.message_id
+        sent_msg.message_id
     )
 )
 
@@ -647,12 +646,11 @@ async def overview(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🚫 Banned Users: {banned_users}\n"
         f"📝 Answers Today: {answers_today}"
     )
-
-asyncio.create_task(
+    asyncio.create_task(
     delete_after_20min(
         context,
         update.effective_chat.id,
-        msg.message_id
+        sent_msg.message_id
     )
 )
 
