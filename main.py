@@ -186,8 +186,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/update question | answer\n"
             "/del question\n"
             "/list\n"
+            "/totalqa\n"
             "/grant user_id days\n"
             "/revoke user_id\n"
+            "/addadmin user_id\n"
+            "/removeadmin user_id\n"
+            "/admins\n"
             "/export\n"
             "/import\n"
             "/stats today\n"
@@ -549,6 +553,23 @@ def get_start(period):
     if period == "7days":
         return datetime.now() - timedelta(days=7)
     return None
+
+async def totalqa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update.effective_user.id):
+        await owner_only(update)
+        return
+
+    con = db()
+    cur = con.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM qa")
+    total = cur.fetchone()[0]
+
+    con.close()
+
+    await update.message.reply_text(
+        f"📚 Total Questions Stored: {total}"
+    )
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update.effective_user.id):
@@ -921,6 +942,7 @@ def main():
     app.add_handler(CommandHandler("import", import_cmd))
 
     app.add_handler(CommandHandler("stats", stats))
+    app.add_handler(CommandHandler("totalqa", totalqa))
     app.add_handler(CommandHandler("userstats", userstats))
     app.add_handler(CommandHandler("top", top))
 
