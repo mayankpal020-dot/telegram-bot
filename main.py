@@ -1,7 +1,8 @@
 import os, json, sqlite3, asyncio, logging
 from datetime import datetime, timedelta, date
 from dotenv import load_dotenv
-from telegram import Update, InputFile
+from telegram import Update, InputFile, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 from telegram.request import HTTPXRequest
 from flask import Flask
@@ -337,26 +338,58 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("✅ Deleted." if deleted else "❌ Question not found.")
 
-async def list_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        await no_auth(update)
-        return
+async def make_list_message(page=1):
+    limit = 20
+    offset = (page - 1) * limit
 
     con = db()
     cur = con.cursor()
-    cur.execute("SELECT question FROM qa ORDER BY id DESC LIMIT 50")
+    cur.execute("SELECT COUNT(*) FROM qa")
+    total = cur.fetchone()[0]
+
+    cur.execute("SELECT question FROM qa ORDER BY id ASC LIMIT ? OFFSET ?", (limit, offset))
     rows = cur.fetchall()
     con.close()
 
-    if not rows:
-        await update.message.reply_text("No Q&A saved.")
+    total_pages = max(1, (total + limit - 1) // limit)
+
+    msg = f"📚 Questions List\nPage {page}/{total_pages}\nTotal: {total}\n\n"
+
+    for i, (question,) in enumerate(rows, start=offset + 1):
+        msg += f"{i}. {question}\n\n"
+
+    buttons = []
+    row = []
+    if page > 1:
+        row.append(InlineKeyboardButton("⬅️ Previous", callback_data=f"list_{page-1}"))
+    if page < total_pages:
+        row.append(InlineKeyboardButton("Next ➡️", callback_data=f"list_{page+1}"))
+    if row:
+        buttons.append(row)
+
+    return msg, InlineKeyboardMarkup(buttons)
+
+async def list_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update.effective_user.id):
+        await owner_only(update)
         return
 
-    msg = "📚 Saved Questions:\n\n"
-    for i, r in enumerate(rows, 1):
-        msg += f"{i}. {r[0]}\n"
+    msg, keyboard = await make_list_message(1)
+    await update.message.reply_text(msg, reply_markup=keyboard)
 
-    await update.message.reply_text(msg)
+
+async def list_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if not is_owner(query.from_user.id):
+        await query.edit_message_text("❌ Only Owner can use this.")
+        return
+
+    page = int(query.data.replace("list_", ""))
+    msg, keyboard = await make_list_message(page)
+
+    await query.edit_message_text(msg, reply_markup=keyboard)
 
 async def grant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update.effective_user.id):
@@ -967,6 +1000,7 @@ def main():
     app.add_handler(CommandHandler("update", update_qa))
     app.add_handler(CommandHandler("del", delete))
     app.add_handler(CommandHandler("list", list_qa))
+    app.add_handler(CallbackQueryHandler(list_callback, pattern="^list_"))
     
     app.add_handler(CommandHandler("addadmin", addadmin))
     app.add_handler(CommandHandler("removeadmin", removeadmin))
