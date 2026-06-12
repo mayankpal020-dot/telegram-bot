@@ -192,6 +192,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/addadmin user_id\n"
             "/removeadmin user_id\n"
             "/admins\n"
+            "/overview\n"
             "/export\n"
             "/import\n"
             "/stats today\n"
@@ -571,6 +572,42 @@ async def totalqa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📚 Total Questions Stored: {total}"
     )
 
+async def overview(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update.effective_user.id):
+        await owner_only(update)
+        return
+
+    start_today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+
+    con = db()
+    cur = con.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM users")
+    total_users = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM subscriptions WHERE expires_at > ?", (now(),))
+    active_subs = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM qa")
+    total_questions = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM banned_users")
+    banned_users = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM answer_logs WHERE created_at >= ?", (start_today,))
+    answers_today = cur.fetchone()[0]
+
+    con.close()
+
+    await update.message.reply_text(
+        "📊 Bot Overview\n\n"
+        f"👥 Total Users: {total_users}\n"
+        f"⭐ Active Subscribers: {active_subs}\n"
+        f"📚 Questions Stored: {total_questions}\n"
+        f"🚫 Banned Users: {banned_users}\n"
+        f"📝 Answers Today: {answers_today}"
+    )
+
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update.effective_user.id):
         await owner_only(update)
@@ -943,6 +980,7 @@ def main():
 
     app.add_handler(CommandHandler("stats", stats))
     app.add_handler(CommandHandler("totalqa", totalqa))
+    app.add_handler(CommandHandler("overview", overview))
     app.add_handler(CommandHandler("userstats", userstats))
     app.add_handler(CommandHandler("top", top))
 
