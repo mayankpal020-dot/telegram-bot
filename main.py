@@ -881,7 +881,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         answer_msg = await update.message.reply_text(row[0])
 
-    if not is_owner(uid):
+        if not is_owner(uid):
             user_cooldowns[uid] = datetime.now().timestamp()
 
             asyncio.create_task(
@@ -892,9 +892,9 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             )
 
-           asyncio.create_task(
-            cooldown_countdown(update, context)
-        )
+            asyncio.create_task(
+                cooldown_countdown(update, context)
+            )
 
     else:
         con.close()
