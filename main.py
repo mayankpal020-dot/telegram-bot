@@ -44,8 +44,17 @@ def is_owner(user_id):
     return user_id == OWNER_ID
 
 def is_admin(user_id):
-    return user_id == OWNER_ID or user_id in ADMIN_IDS
+    if is_owner(user_id):
+        return True
 
+    con = db()
+    cur = con.cursor()
+    cur.execute("SELECT user_id FROM admins WHERE user_id=?", (user_id,))
+    row = cur.fetchone()
+    con.close()
+
+    return row is not None
+    
 async def no_auth(update):
     await update.message.reply_text("❌ You are not authorized.")
 
@@ -95,6 +104,11 @@ def init_db():
     cur.execute("""CREATE TABLE IF NOT EXISTS banned_users(
         user_id INTEGER PRIMARY KEY,
         banned_at TEXT
+    )""")
+    
+    cur.execute("""CREATE TABLE IF NOT EXISTS admins(
+        user_id INTEGER PRIMARY KEY,
+        added_at TEXT
     )""")
 
     con.commit()
@@ -389,6 +403,73 @@ async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
     con.close()
 
     await update.message.reply_text("✅ Subscription revoked.")
+
+async def addadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update.effective_user.id):
+        await owner_only(update)
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text("Use:\n/addadmin user_id")
+        return
+
+    try:
+        uid = int(context.args[0])
+    except:
+        await update.message.reply_text("❌ Invalid user_id.")
+        return
+
+    con = db()
+    cur = con.cursor()
+    cur.execute("INSERT OR REPLACE INTO admins(user_id, added_at) VALUES(?,?)", (uid, now()))
+    con.commit()
+    con.close()
+
+    await update.message.reply_text(f"✅ Admin added.\nUser ID: {uid}")
+
+async def removeadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update.effective_user.id):
+        await owner_only(update)
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text("Use:\n/removeadmin user_id")
+        return
+
+    try:
+        uid = int(context.args[0])
+    except:
+        await update.message.reply_text("❌ Invalid user_id.")
+        return
+
+    con = db()
+    cur = con.cursor()
+    cur.execute("DELETE FROM admins WHERE user_id=?", (uid,))
+    con.commit()
+    con.close()
+
+    await update.message.reply_text(f"✅ Admin removed.\nUser ID: {uid}")
+
+async def admins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update.effective_user.id):
+        await owner_only(update)
+        return
+
+    con = db()
+    cur = con.cursor()
+    cur.execute("SELECT user_id, added_at FROM admins ORDER BY added_at DESC")
+    rows = cur.fetchall()
+    con.close()
+
+    if not rows:
+        await update.message.reply_text("No admins added.")
+        return
+
+    msg = "🛡️ Admin List:\n\n"
+    for i, (uid, added_at) in enumerate(rows, 1):
+        msg += f"{i}. {uid} | {added_at}\n"
+
+    await update.message.reply_text(msg)
 
 async def export(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update.effective_user.id):
@@ -828,6 +909,10 @@ def main():
     app.add_handler(CommandHandler("update", update_qa))
     app.add_handler(CommandHandler("del", delete))
     app.add_handler(CommandHandler("list", list_qa))
+    
+    app.add_handler(CommandHandler("addadmin", addadmin))
+    app.add_handler(CommandHandler("removeadmin", removeadmin))
+    app.add_handler(CommandHandler("admins", admins))
 
     app.add_handler(CommandHandler("grant", grant))
     app.add_handler(CommandHandler("revoke", revoke))
