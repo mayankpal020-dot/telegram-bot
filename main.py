@@ -677,6 +677,29 @@ async def banlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg += f"{i}. {uid} - {banned_at}\n"
 
     await update.message.reply_text(msg)
+async def silently_delete_later(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int):
+    await asyncio.sleep(5)
+    try:
+        await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except:
+        pass
+
+async def cooldown_countdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    cooldown_msg = await update.message.reply_text(
+        f"⏳ Cooldown Active\nNext question in: {COOLDOWN_SECONDS} seconds"
+    )
+
+    for sec in range(COOLDOWN_SECONDS - 1, 0, -1):
+        await asyncio.sleep(1)
+        try:
+            await cooldown_msg.edit_text(f"⏳ Cooldown Active\nNext question in: {sec} seconds")
+        except:
+            pass
+
+    try:
+        await cooldown_msg.edit_text("✅ Cooldown finished. You can ask next question now.")
+    except:
+        pass
 
 async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type != "private":
@@ -717,26 +740,22 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         con.commit()
         con.close()
 
-        await update.message.reply_text(row[0])
+        answer_msg = await update.message.reply_text(row[0])
 
         if not is_owner(uid):
-            user_cooldowns[uid] = datetime.now().timestamp()
+    user_cooldowns[uid] = datetime.now().timestamp()
 
-            cooldown_msg = await update.message.reply_text(
-                f"⏳ Cooldown Active\nNext question in: {COOLDOWN_SECONDS} seconds"
-            )
+    asyncio.create_task(
+        silently_delete_later(
+            context,
+            update.effective_chat.id,
+            answer_msg.message_id
+        )
+    )
 
-            for sec in range(COOLDOWN_SECONDS - 1, 0, -1):
-                await asyncio.sleep(1)
-                try:
-                    await cooldown_msg.edit_text(f"⏳ Cooldown Active\nNext question in: {sec} seconds")
-                except:
-                    pass
-
-            try:
-                await cooldown_msg.edit_text("✅ Cooldown finished. You can ask next question now.")
-            except:
-                pass
+    asyncio.create_task(
+        cooldown_countdown(update, context)
+    )
 
     else:
         con.close()
