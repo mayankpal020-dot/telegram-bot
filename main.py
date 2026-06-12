@@ -893,8 +893,10 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             asyncio.create_task(
-                cooldown_countdown(update, context)
-            )
+            cooldown_countdown(update, context)
+        )
+
+        return
 
     else:
         con.close()
