@@ -375,8 +375,15 @@ async def list_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     msg, keyboard = await make_list_message(1)
-    await update.message.reply_text(msg, reply_markup=keyboard)
+    sent_msg=await update.message.reply_text(msg, reply_markup=keyboard)
 
+asyncio.create_task(
+    delete_after_20min(
+        context,
+        update.effective_chat.id,
+        msg.message_id
+    )
+)
 
 async def list_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -632,7 +639,7 @@ async def overview(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     con.close()
 
-    await update.message.reply_text(
+    sent_msg=await update.message.reply_text(
         "📊 Bot Overview\n\n"
         f"👥 Total Users: {total_users}\n"
         f"⭐ Active Subscribers: {active_subs}\n"
@@ -640,6 +647,14 @@ async def overview(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🚫 Banned Users: {banned_users}\n"
         f"📝 Answers Today: {answers_today}"
     )
+
+asyncio.create_task(
+    delete_after_20min(
+        context,
+        update.effective_chat.id,
+        msg.message_id
+    )
+)
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update.effective_user.id):
@@ -853,6 +868,17 @@ async def silently_delete_later(context: ContextTypes.DEFAULT_TYPE, chat_id: int
     await asyncio.sleep(5)
     try:
         await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except:
+        pass
+
+async def delete_after_20min(context, chat_id, message_id):
+    await asyncio.sleep(1200)  # 20 min
+
+    try:
+        await context.bot.delete_message(
+            chat_id=chat_id,
+            message_id=message_id
+        )
     except:
         pass
 
