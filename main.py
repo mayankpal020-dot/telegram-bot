@@ -263,7 +263,9 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     q, a = text.split("|", 1)
-    q = " ".join(q.strip().lower().split())
+    q = " ".join(
+    q.strip().lower().rstrip(".?!,:;").split()
+)
     a = a.strip()
 
     con = db()
@@ -907,7 +909,9 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     save_user(update)
     uid = update.effective_user.id
-    q = " ".join(update.message.text.strip().lower().split())
+    q = " ".join(
+    update.message.text.strip().lower().rstrip(".?!,:;").split()
+)
 
     if is_banned(uid):
         await update.message.reply_text("🚫 You are banned from using this bot.")
