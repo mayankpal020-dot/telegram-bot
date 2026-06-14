@@ -530,16 +530,16 @@ async def export(update: Update, context: ContextTypes.DEFAULT_TYPE):
     filename = "qa_backup.json"
     
     with open(filename, "w", encoding="utf-8") as f:
-    json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
     with open(filename, "rb") as f:
-    await update.message.reply_document(
+        await update.message.reply_document(
         document=f,
         filename=filename,
         caption="✅ Backup exported."
     )
 
-    os.remove(filename)
+os.remove(filename)
 
 async def import_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update.effective_user.id):
