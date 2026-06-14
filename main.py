@@ -539,7 +539,7 @@ async def export(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption="✅ Backup exported."
     )
 
-os.remove(filename)
+       os.remove(filename)
 
 async def import_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update.effective_user.id):
