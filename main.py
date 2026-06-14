@@ -573,7 +573,7 @@ async def handle_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
         count = 0
 
         for item in data:
-            q = item.get("question", "").strip().lower()
+            q = " ".join(item.get("question", "").strip().lower().split())
             a = item.get("answer", "").strip()
 
             if q and a:
@@ -907,10 +907,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     save_user(update)
     uid = update.effective_user.id
-    q = " ".join(
-    update.message.text.strip().lower().rstrip(".?!,:;").split()
-)
-
+    q = " ".join(update.message.text.strip().lower().split())
     if is_banned(uid):
         await update.message.reply_text("🚫 You are banned from using this bot.")
         return
@@ -934,10 +931,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     con = db()
     cur = con.cursor()
-    cur.execute(
-    "SELECT answer FROM qa WHERE LOWER(TRIM(question))=? OR LOWER(TRIM(question))=?",
-    (q, q + ".")
-)
+    cur.execute("SELECT answer FROM qa WHERE question=?", (q,))
     row = cur.fetchone()
 
     if row:
