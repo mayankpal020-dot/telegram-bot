@@ -263,9 +263,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     q, a = text.split("|", 1)
-    q = " ".join(
-    q.strip().lower().rstrip(".?!,:;").split()
-)
+    q = " ".join(q.strip().lower().split())
     a = a.strip()
 
     con = db()
@@ -936,7 +934,10 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     con = db()
     cur = con.cursor()
-    cur.execute("SELECT answer FROM qa WHERE LOWER(TRIM(question))=?", (q,))
+    cur.execute(
+    "SELECT answer FROM qa WHERE LOWER(TRIM(question))=? OR LOWER(TRIM(question))=?",
+    (q, q + ".")
+)
     row = cur.fetchone()
 
     if row:
