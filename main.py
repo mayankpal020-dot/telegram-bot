@@ -263,12 +263,12 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     q, a = text.split("|", 1)
-    q = q.strip().lower()
+    q = " ".join(q.strip().lower().split())
     a = a.strip()
 
     con = db()
     cur = con.cursor()
-    cur.execute("SELECT answer FROM qa WHERE question=?", (q,))
+    cur.execute("SELECT answer FROM qa WHERE LOWER(TRIM(question))=?", (q,))
     old = cur.fetchone()
 
     if old:
@@ -907,7 +907,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     save_user(update)
     uid = update.effective_user.id
-    q = update.message.text.strip().lower()
+    q = " ".join(update.message.text.strip().lower().split())
 
     if is_banned(uid):
         await update.message.reply_text("🚫 You are banned from using this bot.")
@@ -932,7 +932,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     con = db()
     cur = con.cursor()
-    cur.execute("SELECT answer FROM qa WHERE question=?", (q,))
+    cur.execute("SELECT answer FROM qa WHERE LOWER(TRIM(question))=?", (q,))
     row = cur.fetchone()
 
     if row:
