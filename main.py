@@ -741,6 +741,65 @@ async def totalusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"👥 Total Users: {total}")
 
+async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update.effective_user.id):
+        await owner_only(update)
+        return
+
+    con = db()
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT 
+            u.user_id,
+            u.username,
+            u.first_name,
+            u.joined_at,
+            u.last_active,
+            s.expires_at
+        FROM users u
+        LEFT JOIN subscriptions s ON u.user_id = s.user_id
+        ORDER BY u.last_active DESC
+    """)
+    rows = cur.fetchall()
+    con.close()
+
+    if not rows:
+        await update.message.reply_text("No users found.")
+        return
+
+    msg = f"👥 Total Users: {len(rows)}\n\n"
+
+    for i, (uid, username, first_name, joined_at, last_active, expires_at) in enumerate(rows, 1):
+        uname = f"@{username}" if username else "No username"
+        name = first_name if first_name else "No name"
+
+        sub_status = "❌ No Subscription"
+        if expires_at:
+            try:
+                exp = datetime.strptime(expires_at, "%Y-%m-%d %H:%M:%S")
+                if exp > datetime.now():
+                    sub_status = f"✅ Active till {expires_at}"
+                else:
+                    sub_status = f"⚠️ Expired on {expires_at}"
+            except:
+                sub_status = f"⚠️ Unknown expiry: {expires_at}"
+
+        msg += (
+            f"{i}. {name} | {uname}\n"
+            f"🆔 ID: {uid}\n"
+            f"💎 {sub_status}\n"
+            f"📅 Joined: {joined_at}\n"
+            f"🕒 Last Active: {last_active}\n\n"
+        )
+
+        if len(msg) > 3500:
+            await update.message.reply_text(msg)
+            msg = ""
+
+    if msg:
+        await update.message.reply_text(msg)
+
 async def active_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update.effective_user.id):
         await owner_only(update)
@@ -1046,6 +1105,7 @@ def main():
     app.add_handler(CommandHandler("top", top))
 
     app.add_handler(CommandHandler("totalusers", totalusers))
+    app.add_handler(CommandHandler("users", users))
     app.add_handler(CommandHandler("active", active_users))
     app.add_handler(CommandHandler("newusers", newusers))
 
