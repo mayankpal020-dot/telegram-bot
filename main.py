@@ -170,7 +170,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
 
     if is_banned(uid):
-        await update.message.reply_text("🚫 You are banned from using this bot.")
+        
         return
 
     text = (
@@ -968,7 +968,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     q = " ".join(update.message.text.strip().lower().split())
     if is_banned(uid):
-        await update.message.reply_text("🚫 You are banned from using this bot.")
+        
         return
 
     if not active_sub(uid):
@@ -1028,6 +1028,8 @@ async def reminder_loop(app):
             rows = cur.fetchall()
 
             for uid, exp_text in rows:
+                if is_banned(uid):
+                   continue
                 exp = datetime.strptime(exp_text, "%Y-%m-%d %H:%M:%S")
                 days_left = (exp.date() - datetime.now().date()).days
 
